@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useQuery } from 'react-query';
+import { adminApi } from '../services/api';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -14,6 +16,11 @@ export default function RegisterPage() {
   
   const { register } = useAuth();
 
+  // التحقق من إعدادات التسجيل
+  const { data: settings } = useQuery('systemSettings', adminApi.getSettings, {
+    retry: false,
+    refetchOnWindowFocus: false
+  });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -46,6 +53,30 @@ export default function RegisterPage() {
     }
   };
 
+  // إذا كان التسجيل مغلقاً
+  if (settings?.data?.allowRegistration === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-2xl mb-4 shadow-lg">
+            <Lock className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            التسجيل مغلق حالياً
+          </h1>
+          <p className="text-gray-600 mb-6">
+            تم إغلاق التسجيل من قبل مدير النظام. يرجى التواصل مع المدير للحصول على حساب.
+          </p>
+          <Link
+            to="/login"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transition-all duration-200"
+          >
+            العودة لتسجيل الدخول
+          </Link>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full">

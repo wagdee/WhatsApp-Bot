@@ -3,6 +3,10 @@ export interface User {
   username: string;
   email: string;
   token: string;
+  role: 'user' | 'admin';
+  is_active?: boolean;
+  created_at?: string;
+  last_login?: string;
 }
 
 export interface ScheduledMessage {
@@ -36,4 +40,7 @@ export interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+}
+export interface SystemSettings {
+  allowRegistration: boolean;
 }

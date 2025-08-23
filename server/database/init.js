@@ -1,6 +1,8 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +21,9 @@ function initializeDatabase() {
         return;
       }
       console.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
-      createTables().then(resolve).catch(reject);
+      createTables().then(() => {
+        createAdminUser().then(resolve).catch(reject);
+      }).catch(reject);
     });
   });
 }
@@ -38,6 +42,14 @@ function createTables() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_login DATETIME,
         role TEXT DEFAULT 'user'
+      )`,
+      
+      // جدول إعدادات النظام
+      `CREATE TABLE IF NOT EXISTS system_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        setting_key TEXT UNIQUE NOT NULL,
+        setting_value TEXT NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
       
       // جدول الرسائل المجدولة
@@ -111,6 +123,57 @@ function createTables() {
   });
 }
 
+async function createAdminUser() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // التحقق من وجود المدير
+      db.get('SELECT id FROM users WHERE email = ?', ['admin@admin.com'], async (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (!row) {
+          // إنشاء حساب المدير
+          const adminId = uuidv4();
+          const adminToken = `admin_${uuidv4().replace(/-/g, '')}_${Date.now().toString(36)}`;
+          const passwordHash = await bcrypt.hash('admin', 10);
+          
+          db.run(`
+            INSERT INTO users (id, username, email, password_hash, token, is_active, role, created_at)
+            VALUES (?, ?, ?, ?, ?, true, 'admin', CURRENT_TIMESTAMP)
+          `, [adminId, 'admin', 'admin@admin.com', passwordHash, adminToken], (err) => {
+            if (err) {
+              console.error('خطأ في إنشاء حساب المدير:', err);
+              reject(err);
+            } else {
+              console.log('✅ تم إنشاء حساب المدير بنجاح');
+              
+              // إضافة إعدادات النظام الافتراضية
+              db.run(`
+                INSERT OR REPLACE INTO system_settings (setting_key, setting_value)
+                VALUES ('allow_registration', 'true')
+              `, (err) => {
+                if (err) {
+                  console.error('خطأ في إضافة إعدادات النظام:', err);
+                  reject(err);
+                } else {
+                  console.log('✅ تم إضافة إعدادات النظام');
+                  resolve();
+                }
+              });
+            }
+          });
+        } else {
+          console.log('✅ حساب المدير موجود مسبقاً');
+          resolve();
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 function getDatabase() {
   return db;
 }

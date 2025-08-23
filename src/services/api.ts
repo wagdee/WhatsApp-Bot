@@ -77,4 +77,16 @@ export const autoReplyApi = {
   delete: (id: string) => apiClient.delete(`/auto-reply/${id}`),
 };
 
+// API للمدير
+export const adminApi = {
+  getUsers: () => apiClient.get('/admin/users'),
+  createUser: (username: string, email: string, password: string, role: string = 'user') =>
+    apiClient.post('/admin/users', { username, email, password, role }),
+  updateUser: (id: string, updates: any) => apiClient.put(`/admin/users/${id}`, updates),
+  changePassword: (id: string, newPassword: string) =>
+    apiClient.put(`/admin/users/${id}/password`, { newPassword }),
+  deleteUser: (id: string) => apiClient.delete(`/admin/users/${id}`),
+  getSettings: () => apiClient.get('/admin/settings'),
+  updateSettings: (settings: any) => apiClient.put('/admin/settings', settings),
+};
 export default apiClient;

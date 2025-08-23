@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import whatsappRoutes from './routes/whatsapp.js';
 import messageRoutes from './routes/messages.js';
 import autoReplyRoutes from './routes/autoReply.js';
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, '../dist')));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/auto-reply', autoReplyRoutes);

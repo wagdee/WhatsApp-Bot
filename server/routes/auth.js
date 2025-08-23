@@ -10,6 +10,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'whatsapp_bot_secret_key_2024';
 // تسجيل مستخدم جديد
 router.post('/register', async (req, res) => {
   try {
+    // التحقق من إعدادات النظام
+    const db = getDatabase();
+    const allowRegistration = await new Promise((resolve, reject) => {
+      db.get('SELECT setting_value FROM system_settings WHERE setting_key = ?', ['allow_registration'], (err, row) => {
+        if (err) reject(err);
+        else resolve(row ? row.setting_value === 'true' : true);
+      });
+    });
+
+    if (!allowRegistration) {
+      return res.status(403).json({
+        success: false,
+        message: 'التسجيل مغلق حالياً من قبل المدير'
+      });
+    }
+
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
@@ -26,8 +42,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const db = getDatabase();
-    
     // التحقق من وجود المستخدم
     const existingUser = await new Promise((resolve, reject) => {
       db.get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username], (err, row) => {
@@ -149,7 +163,8 @@ router.post('/login', async (req, res) => {
         userId: user.id, 
         username: user.username, 
         email: user.email, 
-        userToken: user.token 
+        userToken: user.token,
+        role: user.role
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -163,7 +178,8 @@ router.post('/login', async (req, res) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          token: user.token
+          token: user.token,
+          role: user.role
         },
         authToken: jwtToken
       }
@@ -184,7 +200,7 @@ router.get('/verify', authenticateToken, async (req, res) => {
     const db = getDatabase();
     
     const user = await new Promise((resolve, reject) => {
-      db.get('SELECT id, username, email, token, is_active FROM users WHERE id = ?', [req.user.userId], (err, row) => {
+      db.get('SELECT id, username, email, token, is_active, role FROM users WHERE id = ?', [req.user.userId], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -204,7 +220,8 @@ router.get('/verify', authenticateToken, async (req, res) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          token: user.token
+          token: user.token,
+          role: user.role
         }
       }
     });
